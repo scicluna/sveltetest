@@ -1,42 +1,39 @@
-// In a real app, this data would live in a database,
-// rather than in memory. But for now, we cheat.
-const db = new Map();
+const database = new Map();
 
 export function getTodos(userid: any) {
-	if (!db.get(userid)) {
-		db.set(userid, [{
-			id: crypto.randomUUID(),
-			description: 'Learn SvelteKit',
-			done: false
-		}]);
+	if (!database.has(userid)) {
+		createTodo({ userid, description: 'Learn about API routes' });
 	}
 
-	return db.get(userid);
+	return Array.from(database.get(userid).values());
 }
 
-export function createTodo(userid: any, description: any) {
-	if (description === '') {
-		throw new Error('todo must have a description')
+export function createTodo({ userid, description }: any) {
+	if (!database.has(userid)) {
+		database.set(userid, new Map());
 	}
 
-	const todos = db.get(userid);
+	const todos = database.get(userid);
 
-	if (todos.find((todo: any) => todo.description === description)) {
-		throw new Error('todos must be unique')
-	}
+	const id = crypto.randomUUID();
 
-	todos.push({
-		id: crypto.randomUUID(),
+	todos.set(id, {
+		id,
 		description,
 		done: false
 	});
+
+	return {
+		id
+	};
 }
 
-export function deleteTodo(userid: any, todoid: any) {
-	const todos = db.get(userid);
-	const index = todos.findIndex((todo: any) => todo.id === todoid);
+export function toggleTodo({ userid, id, done }: any) {
+	const todos = database.get(userid);
+	todos.get(id).done = done;
+}
 
-	if (index !== -1) {
-		todos.splice(index, 1);
-	}
+export function deleteTodo({ userid, id }: any) {
+	const todos = database.get(userid);
+	todos.delete(id);
 }

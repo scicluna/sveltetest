@@ -1,72 +1,68 @@
-<script lang="ts">
-  import { enhance } from "$app/forms"
-  import { fly, slide } from "svelte/transition"
-
+<script>
   export let data
-  export let form
-
-  let creating = false
-  /**
-   * @type {string | any[]}
-   */
-  let deleting: any[] = []
 </script>
 
 <div class="centered">
   <h1>todos</h1>
 
-  {#if form?.error}
-    <p class="error">{form.error}</p>
-  {/if}
+  <label>
+    add a todo:
+    <input
+      type="text"
+      autocomplete="off"
+      on:keydown={async (e) => {
+        if (e.key === "Enter") {
+          const input = e.currentTarget
+          const description = input.value
 
-  <form
-    method="POST"
-    action="?/create"
-    use:enhance={() => {
-      creating = true
-      return async ({ update }) => {
-        await update()
-        creating = false
-      }
-    }}
-  >
-    <label>
-      add a todo:
-      <input
-        disabled={creating}
-        name="description"
-        autocomplete="off"
-        required
-        value={form?.description ?? ""}
-      />
-    </label>
-  </form>
+          const response = await fetch("/todo", {
+            method: "POST",
+            body: JSON.stringify({ description }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+
+          const { id } = await response.json()
+
+          data.todos = [
+            ...data.todos,
+            {
+              id,
+              description,
+            },
+          ]
+
+          input.value = ""
+        }
+      }}
+    />
+  </label>
 
   <ul class="todos">
-    {#each data.todos.filter((todo) => !deleting.includes(todo.id)) as todo}
-      <li in:fly={{ x: -20 }} out:slide>
-        <form
-          method="POST"
-          action="?/delete"
-          use:enhance={() => {
-            deleting = [...deleting, todo.id]
-            return async ({ update }) => {
-              await update()
-              deleting = deleting.filter((id) => id !== todo.id)
-            }
-          }}
-        >
-          <input type="hidden" name="id" value={todo.id} />
+    {#each data.todos as todo (todo.id)}
+      <li>
+        <label>
+          <input
+            type="checkbox"
+            checked={todo.done}
+            on:change={async (e) => {
+              const done = e.currentTarget.checked
+
+              // TODO handle change
+            }}
+          />
           <span>{todo.description}</span>
-          <button aria-label="Mark as complete" />
-        </form>
+          <button
+            aria-label="Mark as complete"
+            on:click={async (e) => {
+              // TODO handle delete
+            }}
+          />
+        </label>
       </li>
     {/each}
   </ul>
-
-  {#if creating}
-    <span class="saving">saving...</span>
-  {/if}
 </div>
 
 <style>
@@ -76,11 +72,11 @@
   }
 
   label {
+    display: flex;
     width: 100%;
   }
 
-  input {
-    color: black;
+  input[type="text"] {
     flex: 1;
   }
 
@@ -101,9 +97,5 @@
 
   button:hover {
     opacity: 1;
-  }
-
-  .saving {
-    opacity: 0.5;
   }
 </style>
